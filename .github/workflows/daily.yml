@@ -1,0 +1,44 @@
+name: Actualizar observatorio
+on:
+  schedule:
+    # Chile 08:30 en horario de verano / invierno, respectivamente.
+    - cron: '30 11,12 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: observatorio-diario
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Comprobar hora de Santiago
+        id: timecheck
+        env:
+          TRIGGER: ${{ github.event_name }}
+        run: |
+          python - <<'PY'
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          import os
+          local = datetime.now(ZoneInfo("America/Santiago"))
+          allowed = os.environ["TRIGGER"] == "workflow_dispatch" or (local.hour == 8 and local.minute >= 30)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write("should_run=" + str(allowed).lower() + "\n")
+          print("Hora Santiago:", local, "Ejecutar:", allowed)
+          PY
+      - name: Generar noticias
+        if: steps.timecheck.outputs.should_run == 'true'
+        run: python scripts/update.py
+      - name: Publicar datos
+        if: steps.timecheck.outputs.should_run == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/latest.json docs/archive/ docs/archive-index.json
+          git diff --cached --quiet || (git commit -m "Actualizar noticias del parking" && git push)
