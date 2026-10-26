@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Observatorio Mundial del Parking | ParkFacil</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#17324d;background:#f3f7fc}*{box-sizing:border-box}
+body{margin:0}header{background:linear-gradient(120deg,#0e2a51,#1874b9);color:#fff;padding:54px max(22px,calc((100vw - 1050px)/2))}header p{color:#d9eafb}
+h1{font-size:clamp(27px,4vw,44px);margin:0}main{max-width:1050px;margin:auto;padding:30px 20px}
+nav{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:24px}.pill{background:#e2efff;border-radius:30px;padding:9px 15px;font-size:14px;color:#164d7f}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:17px}.story{background:#fff;border:1px solid #dce6f1;border-radius:14px;padding:22px;box-shadow:0 4px 17px #18324a0d}
+.story h2{font-size:19px;line-height:1.4}.story a{color:#1262a6;text-decoration:none}.story a:hover{text-decoration:underline}.meta{font-size:13px;color:#586e85}
+.empty{background:white;padding:30px;border-radius:13px}.note{font-size:13px;color:#5d6e7e;line-height:1.6;margin-top:25px}
+select{border:1px solid #bdd0e3;border-radius:8px;padding:9px;background:white}footer{text-align:center;padding:25px;color:#678}
+</style></head>
+<body><header><p>ParkFacil · Inteligencia de mercado</p><h1>Observatorio Mundial del Parking</h1><p>Noticias internacionales de estacionamientos, tecnología y monetización.</p></header>
+<main><nav><span class="pill" id="date">Buscando informe…</span><span class="pill" id="count"></span><label for="history">Archivo histórico:</label><select id="history"><option value="">Último informe</option></select></nav>
+<section class="grid" id="stories" aria-live="polite"><div class="empty">El informe se cargará aquí cuando se ejecute la primera actualización.</div></section>
+<p class="note" id="note"></p>
+<p class="note">Actualización programada a las 08:30 hora de Chile. GitHub Actions puede sufrir retrasos. Los titulares provienen de fuentes RSS externas, sin verificación editorial independiente. Esta primera versión no utiliza IA ni genera recomendaciones automáticas.</p>
+</main><footer>© ParkFacil · Observatorio Mundial del Parking</footer>
+<script>
+const el=id=>document.getElementById(id);
+function node(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e}
+async function load(date){try{const name=date?'archive/'+date+'.json':'latest.json';const r=await fetch('./'+name+'?v='+Date.now());if(!r.ok)throw Error('Sin informe');const d=await r.json();el('date').textContent='Informe: '+d.date+' · Chile';el('count').textContent=d.items.length+' noticias';el('stories').replaceChildren();if(!d.items.length)el('stories').append(node('div','empty','No se encontraron noticias publicadas hoy que cumplan los filtros.'));for(const item of d.items){const card=node('article','story');card.append(node('div','meta',item.source+' · '+new Date(item.published).toLocaleTimeString('es-CL',{timeZone:'America/Santiago',hour:'2-digit',minute:'2-digit'})));const h=node('h2');const a=node('a',null,item.title);a.href=item.url;a.target='_blank';a.rel='noopener noreferrer';h.append(a);card.append(h);card.append(node('div','meta','Abrir fuente original'));el('stories').append(card)}el('note').textContent='Generado '+new Date(d.generated_at).toLocaleString('es-CL',{timeZone:'America/Santiago'})+'. '+d.note}catch(e){el('stories').replaceChildren(node('div','empty','Aún no hay informe disponible. Ejecuta la actualización inicial desde GitHub Actions.'))}}
+fetch('./archive-index.json?v='+Date.now()).then(r=>r.json()).then(ds=>{for(const d of ds){const o=node('option',null,d);o.value=d;el('history').append(o)}}).catch(()=>{});
+el('history').addEventListener('change',e=>load(e.target.value));load('');
+</script></body></html>
